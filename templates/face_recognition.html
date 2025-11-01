@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}AI-Powered House | Control Home{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h3 class="text-center mb-4">Home Control</h3>
+
+    <div class="row">
+        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
+            <!-- <img id="home-image" 
+                 src="http://127.0.0.1:8000/media/simu/house_imageOFF.jpg" 
+                 alt="Home Status" 
+                 class="img-fluid rounded shadow"> -->
+            <!-- the 4 rooms -->
+            <div class="row" id="rooms-container">
+                <!-- Room 1 -->
+                <!-- toogle button -->
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="toggle" onchange="updateRoomStatus(3)">
+                    <label class="form-check-label" for="toggle">OFF</label>
+                </div>
+
+
+                <div class="col room" id="room-1" data-room-id="1">
+                    <div class="room-name">Room 1</div>
+                    <div id="room-owner">Owner: </div>
+                    <div class="light-status">ON</div>
+                    <img src="http://127.0.0.1:8000/media/simu/on.jpg" alt="Room 1" width="150" height="150"
+                        class="img-fluid mt-3">
+                </div>
+
+                <!-- Room 2 -->
+                <div class="col room" id="room-2" data-room-id="2">
+                    <div class="room-name">Room 2</div>
+                    <div id="room-owner">Owner: </div>
+                    <div class="light-status">ON</div>
+                    <img src="http://127.0.0.1:8000/media/simu/on.jpg" alt="Room 2" width="150" height="150"
+                        class="img-fluid mt-3">
+                </div>
+
+                <!-- Room 3 -->
+                <div class="col room" id="room-3" data-room-id="3">
+                    <div class="room-name">Room 3</div>
+                    <div id="room-owner">Owner: </div>
+                    <div class="light-status">ON</div>
+                    <img src="http://127.0.0.1:8000/media/simu/on.jpg" alt="Room 3" width="150" height="150"
+                        class="img-fluid mt-3">
+                </div>
+
+                <!-- Room 4 -->
+                <div class="col room" id="room-4" data-room-id="4">
+                    <div class="room-name">Room 4</div>
+                    <div id="room-owner">Owner: </div>
+                    <div class="light-status">ON</div>
+                    <img src="http://127.0.0.1:8000/media/simu/on.jpg" alt="Room 4" width="150" height="150"
+                        class="img-fluid mt-3">
+                </div>
+                <div class="row mt-4 text-center">
+                    <div class="col-md-12">
+                        <div id="res1" class="fw-bold">Faces Recognized: <span id="face-names" class="text-primary"></span></div>
+                        <div id="res2" class="alert alert-success mt-3 "></div>   
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
+            <div class="form-check form-switch p-2 bg-light rounded ">
+                <input class=" " type="checkbox" id="cammera_toggle" onchange="changeCamera()">
+                <label id="camer_switch" class="form-check-label" for="cammera_toggle">Enter</label>
+            </div>
+            <video id="video" autoplay class="rounded shadow mb-3" style="max-height: 250px;"></video>
+            <div class="btn-group d-flex justify-content-center mb-3">
+
+
+                <button id="start" class="btn btn-primary me-2">Start Recognition</button>
+                <button id="stop" class="btn btn-danger me-2">Stop Recognition</button>
+
+            </div>
+        </div>
+    </div>
+    <div class="row mt-5">
+        <div id="rooms-status" class="d-flex justify-content-around">
+        </div>
+    </div>
+
+ 
+</div>
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script>
+    const updateRoomStatus = (roomId, status = null, person = null) => {
+        const switchElement = document.getElementById('toggle');
+        const statuss = switchElement.checked ? 1 : 0; // 1 for ON, 0 for OFF
+        // Construct the URL for the room update API endpoint
+        const url = "{% url 'update-room' 0 %}".replace('0', roomId);
+        if (status == null) {
+            getRoom(roomId);
+            return;
+        }
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'  // Ensure CSRF token is properly injected by Django
+            },
+            body: JSON.stringify({ light_status: statuss })
+        })
+            .then(response => {
+                if (response.ok) {
+                    // Refresh the rooms data after the status update
+                    getRoom(roomId);
+                } else {
+                    throw new Error('Failed to update room status');
+                }
+            })
+            .catch(error => {
+                // Handle errors by showing an alert to the user
+                alert(error.message || 'An unexpected error occurred.');
+            });
+    };
+    const getRoom = (roomId) => {
+        const url = "{% url 'get-room' 0 %}".replace('0', roomId);
+        fetch(url)
+            .then(response => response.json())
+            .then(room => {
+                const roomElement = document.querySelector(`#room-${room.id}`);
+                const roomOwnerElement = roomElement.querySelector('#room-owner');
+                const lightStatusElement = roomElement.querySelector('.light-status');
+                const imgElement = roomElement.querySelector('img');
+                var owner = room.owner[0] || null;
+                if (owner) {
+                    roomOwnerElement.textContent = `Owner: ${owner.name}`;
+                } else {
+                    roomOwnerElement.textContent = 'Owner: None';
+                }
+                // Update the light status and image source based on the room's light status
+                if (room.light_status) {
+                    lightStatusElement.textContent = 'ON';
+                    imgElement.src = "http://127.0.0.1:8000/media/simu/on.jpg"; // Light ON image
+                } else {
+                    lightStatusElement.textContent = 'OFF';
+                    imgElement.src = "http://127.0.0.1:8000/media/simu/off.jpg"; // Light OFF image
+                }
+            })
+            .catch(error => {
+                // Handle errors by showing an alert to the user
+                alert(error.message || 'An unexpected error occurred.');
+            });
+    };
+
+</script>
+
+<script>
+    // Fetch rooms data from the server
+    const getRooms = () =>
+        fetch("{% url 'all-rooms' %}")  // Ensure this URL is correct and accessible
+            .then(response => response.json())
+            .then(data => {
+                // Iterate through the data and update the room status
+                data.forEach(room => {
+                    // Find the room in the DOM using its id
+                    const roomElement = document.querySelector(`#room-${room.id}`);
+                    const roomOwnerElement = roomElement.querySelector('#room-owner');
+                    const lightStatusElement = roomElement.querySelector('.light-status');
+                    const imgElement = roomElement.querySelector('img');
+                    var owner = room.owner[0] || null;
+                    if (owner) {
+                        roomOwnerElement.textContent = `Owner: ${owner.name}`;
+                    } else {
+                        roomOwnerElement.textContent = 'Owner: None';
+                    }
+                    // Update the light status and image source based on the room's light status
+                    if (room.light_status) {
+                        lightStatusElement.textContent = 'ON';
+                        imgElement.src = "http://127.0.0.1:8000/media/simu/on.jpg"; // Light ON image
+                    } else {
+                        lightStatusElement.textContent = 'OFF';
+                        imgElement.src = "http://127.0.0.1:8000/media/simu/off.jpg"; // Light OFF image
+                    }
+                });
+            })
+            .catch(error => {
+                // Handle error by showing an alert to the user
+                showAlert(error.message || 'An unexpected error occurred.', 'danger');
+            });
+
+    // Call the function to fetch rooms data
+    getRooms();
+</script>
+
+<script>
+    const domain = 'http://127.0.0.1:8000/';
+    const video = document.getElementById('video');
+    const homeImage = document.getElementById('home-image');
+    const faceNamesDisplay = document.getElementById('face-names');
+    let socket = null;
+    let reconnectInterval = null;
+    let stream = null;
+
+    var camera_type = 'enter';
+    const changeCamera = () => {
+        const switchElement = document.getElementById('cammera_toggle');
+        const camer_switch = document.getElementById('camer_switch');
+        camera_type = switchElement.checked ? 'exit' : 'enter';
+        // change the text of the switch button
+        camer_switch.innerText = camera_type;
+        // close the socket
+        if (socket) {
+            socket.close();
+            socket = null;
+        }
+
+        if (stream) {
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+        }
+        // remove the text on res2
+        document.getElementById('res2').innerText = '';
+
+    }
+    function connectWebSocket() {
+        if (camera_type == 'enter') {
+            var websocket_url = 'ws://localhost:5000/ws/video/';
+        } else {
+            var websocket_url = 'ws://localhost:5000/ws/exit/'; // Exit
+        }
+
+        socket = new WebSocket(websocket_url);
+        socket.onopen = function () {
+            console.log('WebSocket connected');
+            clearTimeout(reconnectInterval);
+            setInterval(captureFrame, 2000);
+        };
+
+        socket.onmessage = function (event) {
+            const response = JSON.parse(event.data);
+            console.log(response);
+            if (response.faces > 0) {
+                // homeImage.src = domain + response.image;
+                person= response.persons[0];
+                console.log(person);
+                faceNamesDisplay.innerText = person.name;
+                // set the text on res2
+                document.getElementById('res2').innerText = `Lights status changed for room ${person.room}`;
+                // update the room status
+                updateRoomStatus(person.room);
+            } else {
+                document.getElementById('res2').innerText = '';
+            }
+        };
+
+        socket.onclose = function () {
+            console.log('WebSocket disconnected');
+            reconnectInterval = setTimeout(connectWebSocket, 1000);
+        };
+
+        socket.onerror = function (error) {
+            console.error('WebSocket error:', error);
+        };
+    }
+
+    document.getElementById('start').addEventListener('click', async function () {
+        if (!socket || socket.readyState === WebSocket.CLOSED) {
+            await startCamera();
+            connectWebSocket();
+        }
+    });
+
+    document.getElementById('stop').addEventListener('click', function () {
+        if (socket) {
+            socket.close();
+            socket = null;
+        }
+
+        if (stream) {
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+        }
+
+        
+    });
+
+
+    function captureFrame() {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(function (blob) {
+                if (blob) {
+                    blob.arrayBuffer().then(buffer => {
+                        if (socket.readyState === WebSocket.OPEN) {
+                            socket.send(buffer);
+                        }
+                    });
+                }
+            }, 'image/jpeg');
+        }
+    }
+
+    function startCamera() {
+        return navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function (cameraStream) {
+                stream = cameraStream;
+                video.srcObject = stream;
+            })
+            .catch(function (error) {
+                console.error('Camera access error:', error);
+            });
+    }
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .container {
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        max-width: 900px;
+    }
+
+    #home-image,
+    #video {
+        max-height: 300px;
+        width: 100%;
+        object-fit: cover;
+    }
+
+    .btn-group button {
+        padding: 10px 20px;
+        font-size: 1rem;
+        font-weight: 500;
+        border-radius: 5px;
+    }
+
+    .room-card {
+        width: 200px;
+        height: 150px;
+        background-color: #f1f1f1;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin: 0 10px;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .room-status-on {
+        color: green;
+        font-weight: bold;
+    }
+
+    .room-status-off {
+        color: red;
+        font-weight: bold;
+    }
+
+    #res1 {
+        font-size: 1.2rem;
+        margin-top: 20px;
+    }
+
+    #res2 {
+        font-size: 1.1rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,20 @@
+# config.yaml
+tariffs:
+  first_tier:
+    threshold: 6000  # kWh/month
+    rate: 0.18        # SAR/kWh
+  second_tier:
+    rate: 0.30        # SAR/kWh
+
+defaults:
+  days_per_month: 30
+  hours_total: 24
+  hours_home: 22
+  hours_away: 30
+  device_defaults:
+    AC:
+      power_w: 1612
+      count: 1
+    Bulb:
+      power_w: 16
+      count: 1

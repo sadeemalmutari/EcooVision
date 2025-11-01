@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Eco-Vision | Add Person{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <!-- Card Container -->
+        <div class="col-lg-8 col-md-10">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-4">
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <h1 class="display-5">Add Person</h1>
+                        <p class="text-muted">Add a person with their details, photo, and dates</p>
+                    </div>
+
+                    <!-- Alert Section -->
+                    <div class="alert alert-info alert-dismissible fade show d-none" role="alert" id="alert">
+                        <strong>Heads up!</strong> <span id="alert-message"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+
+                    <!-- Form Section -->
+                    <div class="row">
+                        <!-- Image Upload -->
+                        <div class="col-md-6 text-center mb-4">
+                            <div class="image-upload-container">
+                                <img id="img" src="{% static 'images/placeholder.png' %}" 
+                                    class="img-fluid rounded shadow mb-3" 
+                                    onclick="document.getElementById('file').click()"
+                                    alt="Preview" style="max-height: 300px;" />
+                                <input type="file" id="file" name="file" accept="image/*" 
+                                    class="form-control" />
+                            </div>
+                        </div>
+
+                        <!-- Input Fields -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" id="name" class="form-control"  required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="about" class="form-label">About</label>
+                                <textarea id="about" class="form-control" rows="3" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="room_number" class="form-label">Room Number</label>
+                                <select id="room_number" class="form-select">
+                                    <option value="">Select Room Number</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="enter_date" class="form-label">Enter Time</label>
+                                <input type="time" id="enter_date" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="exit_date" class="form-label">Exit Time</label>
+                                <input type="time" id="exit_date" class="form-control" />
+                            </div>
+                           
+
+                            <!-- Status and Submit -->
+                            <div class="text-center mt-4">
+                                <h3 id="result" class="fw-bold mb-3"></h3>
+                                <button id="submit" class="btn btn-primary btn-lg px-4 py-2 rounded-pill shadow-sm" onclick="addPerson()">
+                                    <i class="fas fa-plus"></i> Add Person
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // fetch rooms data from the server
+    // /face_recognition/rooms/
+    fetch("{% url 'all-rooms' %}")
+    .then(response => response.json())
+    .then(data => {
+        const roomNumberInput = document.getElementById('room_number');
+        data.forEach(room => {
+            const option = document.createElement('option');
+            option.value = room.id;
+            option.textContent = room.name;
+            roomNumberInput.appendChild(option);
+        });
+    })
+    .catch(error => 
+    // set the message to the user3
+    showAlert(error.message ||error.message || 'An unexpected error occurred.', 'danger'));
+
+
+
+</script>
+<script>
+    const fileInput = document.getElementById('file');
+    const imgPreview = document.getElementById('img');
+    const alertBox = document.getElementById('alert');
+    const alertMessage = document.getElementById('alert-message');
+
+    // Preview selected image
+    fileInput.addEventListener('change', (e) => {
+        alertBox.classList.add('d-none'); // Hide any existing alert
+        const url = URL.createObjectURL(e.target.files[0]);
+        imgPreview.src = url;
+    });
+
+    const addPerson = () => {
+    const name = document.getElementById('name').value.trim();
+    const about = document.getElementById('about').value.trim();
+    const roomNumber = document.getElementById('room_number').value.trim();
+    const enterDate = document.getElementById('enter_date').value;
+    const exitDate = document.getElementById('exit_date').value;
+    const file = fileInput.files[0];
+
+    if (!name || !about) {
+        showAlert('Please fill out the name and about fields.', 'warning');
+        return;
+    }
+    if (!enterDate || !exitDate) {
+        showAlert('Please fill out the enter and exit date fields.', 'warning');
+        return;
+    }
+    if (!file) {
+        showAlert('Please select an image.', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('about', about);
+    formData.append('room_number', Number(roomNumber) || null);
+    formData.append('enter_date', enterDate || null);
+    formData.append('exit_date', exitDate || null);
+    formData.append('image', file);
+
+    document.getElementById('result').textContent = 'Processing...';
+
+    fetch("{% url 'add_person' %}", {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.json().then(errData => {
+                throw new Error(errData.details);
+            });
+        }
+    })
+    .then(data => {
+        // Show the success message returned from the server
+        showAlert(data.details, 'success');
+        document.getElementById('result').textContent = data.details; // Display result message in the page
+        resetForm(); // Reset form fields
+    })
+    .catch(error => {
+        console.error('Error:', error.message);
+        showAlert(error.message || 'An unexpected error occurred.', 'danger');
+        document.getElementById('result').textContent = ''; // Clear the result message on error
+    });
+};
+
+    const resetForm = () => {
+        document.getElementById('name').value = '';
+        document.getElementById('about').value = '';
+        document.getElementById('enter_date').value = '';
+        document.getElementById('exit_date').value = '';
+        fileInput.value = '';
+        imgPreview.src = "{% static 'images/placeholder.png' %}";
+    };
+
+    const showAlert = (message, type) => {
+        alertBox.classList.remove('d-none', 'alert-info', 'alert-warning', 'alert-danger', 'alert-success');
+        alertBox.classList.add(`alert-${type}`);
+        alertMessage.textContent = message;
+    };
+</script>
+{% endblock %}

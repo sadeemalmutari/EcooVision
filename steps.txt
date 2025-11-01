@@ -1,0 +1,5 @@
+python -m venv myenv
+.\myenv\Scripts\Activate
+pip install -r requirements.txt    
+python manage.py runserver
+daphne -p 5000  ai_powered_house.asgi:application

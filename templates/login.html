@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 100vh;">
+        <div class="col-md-6 col-lg-4 w-100" style="max-width: 500px;">
+            <form id="form" class="p-4 shadow-lg rounded bg-light" method="post">
+                {% csrf_token %}
+                <h2 class="text-center mb-3">Welcome to EcoVision</h2>
+                <h3 class="text-center mb-5">Login</h3>
+
+                <!-- alert  -->
+                <div class="alert alert-danger d-none" id="alert" role="alert">
+                </div>
+                <div class="mb-3">
+                    <label for="username" class="form-label">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <ion-icon name="mail-outline"></ion-icon>
+                        </span>
+                        <input id="username" type="text" name="username" class="form-control"
+                            placeholder="Enter email" />
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <ion-icon name="lock-closed-outline"></ion-icon>
+                        </span>
+                        <input id="password" type="password" name="password" class="form-control"
+                            placeholder="**********" />
+                        <span class="input-group-text">
+                            <ion-icon class="show-hide" name="eye-outline"></ion-icon>
+                        </span>
+                    </div>
+                </div>
+                <!-- havent account -->
+                <div class="mb-3">
+                    <p class="text-center">Don't have an account?<a href="{% url 'signup' %}"> Sign Up</a></p>
+                </div>
+
+                <div class="d-grid">
+                    <button class="btn btn-primary btn-block" type="submit">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+    </script>
+
+<script>
+    document.getElementById('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        login();
+    });
+
+    var login = () => {
+        const alert = document.getElementById('alert');
+        var username = document.getElementById('username').value;
+        var password = document.getElementById('password').value;
+        if (username == '' || password == '') {
+            alert.classList.remove('d-none');
+            alert.textContent = 'Please fill in all fields';
+            return;
+        }
+        var formData = new FormData();
+        formData.append('username', username);
+        formData.append('password', password);
+        fetch("{% url 'login' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        }).then(response => {
+            if (response.ok) {
+                // If the response is OK, redirect to the home page
+                window.location.href = "{% url 'home' %}";
+            } else {
+                return response.json().then(data => {
+                    alert.classList.remove('d-none');
+                    alert.textContent = data.detail || response.statusText; // Fallback to statusText if detail is undefined
+                });
+            }
+        }).catch(error => {
+            // Handle any errors that occur during the fetch
+            console.error('Error:', error);
+            alert.classList.remove('d-none');
+            alert.textContent = 'An unexpected error occurred. Please try again.';
+        });
+
+    };
+</script>
+{% endblock %}
+{% block extra_head %}
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+{% endblock %}

@@ -1,0 +1,20 @@
+digraph AI_Diagnostic_Imaging {
+	fontsize=12 rankdir=TB size="8,5"
+	A [label="Patient Scan / Image Acquisition
+(X-ray, CT, MRI)" fillcolor="#AED6F1" shape=box style=filled]
+	B [label="Data Preprocessing
+(Normalization, Segmentation)" fillcolor="#AED6F1" shape=box style=filled]
+	C [label="AI-Powered Image Analysis
+(Deep Learning Models)" fillcolor="#85C1E9" shape=box style=filled]
+	D [label="Identify Anomalies & Insights
+(Suspicious Regions Highlighted)" fillcolor="#85C1E9" shape=box style=filled]
+	E [label="Clinical Decision-Making
+(Radiologist Review + AI Report)" fillcolor="#5DADE2" shape=box style=filled]
+	F [label="Improved Patient Treatment & Outcome
+(Timely Intervention)" fillcolor="#5DADE2" shape=box style=filled]
+	A -> B
+	B -> C
+	C -> D
+	D -> E
+	E -> F
+}
